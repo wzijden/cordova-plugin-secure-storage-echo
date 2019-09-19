@@ -3,15 +3,15 @@ package com.crypho.plugins;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
+import android.security.KeyPairGeneratorSpec;
+import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyInfo;
+import android.security.keystore.KeyProperties;
 import android.security.keystore.UserNotAuthenticatedException;
 import android.util.Log;
 
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
-import android.security.KeyPairGeneratorSpec;
-
-
+import javax.crypto.Cipher;
+import javax.security.auth.x500.X500Principal;
 import java.math.BigInteger;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -20,11 +20,6 @@ import java.security.KeyStore;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.util.Calendar;
-
-import javax.crypto.Cipher;
-import javax.security.auth.x500.X500Principal;
-
-import static org.apache.cordova.CordovaActivity.TAG;
 
 public class RSA {
     private static final String KEYSTORE_PROVIDER = "AndroidKeyStore";
@@ -55,7 +50,13 @@ public class RSA {
      * @param alias
      * @return boolean
      */
-    public static boolean encryptionKeysAvailable(String alias) {
+    static boolean encryptionKeysAvailable(String alias) {
+        return IS_API_23_AVAILABLE ? isEntryAvailable(alias) : isEntryAvailableLegacy(alias);
+    }
+
+
+    @TargetApi(Build.VERSION_CODES.M)
+    private static boolean isEntryAvailable(String alias) {
         try {
             Key privateKey = loadKey(Cipher.DECRYPT_MODE, alias);
             if (privateKey == null) {
@@ -71,6 +72,15 @@ public class RSA {
         }
     }
 
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    private static boolean isEntryAvailableLegacy(String alias) {
+        try {
+            return loadKey(Cipher.ENCRYPT_MODE, alias) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
     /**
      * Check if we need to prompt for User's Credentials
      *
