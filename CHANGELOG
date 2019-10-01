@@ -1,6 +1,22 @@
 Changelog
 =========
 
+4.0.2 - 2019-09-30
+------------------
+
+- Update contributors.
+  [mibrito707]
+- Fixed code, added finals on variables used in inner scopes.
+  [giordanocardillo]
+- Fixed code, added finals on variables used in inner scopes.
+  [oddcb]
+
+4.0.0-beta - 2019-07-09
+------------------
+
+- Support Android Q.
+  [mibrito707]
+
 3.0.2 - 2019-04-15
 ------------------
 
