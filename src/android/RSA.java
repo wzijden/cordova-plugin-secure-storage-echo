@@ -4,14 +4,9 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.security.KeyPairGeneratorSpec;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyInfo;
 import android.security.keystore.KeyProperties;
-import android.security.keystore.UserNotAuthenticatedException;
 import android.util.Log;
 
-import javax.crypto.Cipher;
-import javax.security.auth.x500.X500Principal;
 import java.math.BigInteger;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -20,6 +15,9 @@ import java.security.KeyStore;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.util.Calendar;
+
+import javax.crypto.Cipher;
+import javax.security.auth.x500.X500Principal;
 
 public class RSA {
     private static final String KEYSTORE_PROVIDER = "AndroidKeyStore";
@@ -39,9 +37,14 @@ public class RSA {
     public static void createKeyPair(Context ctx, String alias, Integer userAuthenticationValidityDuration) throws Exception {
         AlgorithmParameterSpec spec = IS_API_23_AVAILABLE ? getInitParams(alias, userAuthenticationValidityDuration) : getInitParamsLegacy(ctx, alias);
 
-        KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, KEYSTORE_PROVIDER);
+        KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance(getRSAProperty(), KEYSTORE_PROVIDER);
         kpGenerator.initialize(spec);
         kpGenerator.generateKeyPair();
+    }
+
+
+    public static String getRSAProperty() {
+        return KeyProperties.KEY_ALGORITHM_RSA;
     }
 
     /**
@@ -62,10 +65,13 @@ public class RSA {
             if (privateKey == null) {
                 return false;
             }
-            KeyInfo keyInfo;
-            KeyFactory factory = KeyFactory.getInstance(privateKey.getAlgorithm(), KEYSTORE_PROVIDER);
-            keyInfo = factory.getKeySpec(privateKey, KeyInfo.class);
-            return keyInfo.isInsideSecureHardware();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                android.security.keystore.KeyInfo keyInfo;
+                KeyFactory factory = KeyFactory.getInstance(privateKey.getAlgorithm(), KEYSTORE_PROVIDER);
+                keyInfo = factory.getKeySpec(privateKey, android.security.keystore.KeyInfo.class);
+                return keyInfo.isInsideSecureHardware();
+            }
+            return false;
         } catch (Exception e) {
             Log.i(TAG, "Checking encryption keys failed.", e);
             return false;
@@ -73,7 +79,7 @@ public class RSA {
     }
 
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     private static boolean isEntryAvailableLegacy(String alias) {
         try {
             return loadKey(Cipher.ENCRYPT_MODE, alias) != null;
@@ -81,19 +87,21 @@ public class RSA {
             return false;
         }
     }
+
     /**
      * Check if we need to prompt for User's Credentials
      *
      * @param alias
      * @return
      */
+    @TargetApi(Build.VERSION_CODES.M)
     public static boolean userAuthenticationRequired(String alias) {
         try {
             // Do a quick encrypt/decrypt test
             byte[] encrypted = encrypt(alias.getBytes(), alias);
             decrypt(encrypted, alias);
             return false;
-        } catch (UserNotAuthenticatedException noAuthEx) {
+        } catch (android.security.keystore.UserNotAuthenticatedException noAuthEx) {
             return true;
         } catch (Exception e) {
             // Other
@@ -157,7 +165,8 @@ public class RSA {
         Calendar notAfter = Calendar.getInstance();
         notAfter.add(Calendar.YEAR, CERT_VALID_YEARS);
 
-        return new KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return new android.security.keystore.KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT)
                 .setCertificateNotBefore(Calendar.getInstance().getTime())
                 .setCertificateNotAfter(notAfter.getTime())
                 .setAlgorithmParameterSpec(new RSAKeyGenParameterSpec(2048, RSAKeyGenParameterSpec.F4))
@@ -166,26 +175,28 @@ public class RSA {
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
                 .setBlockModes(KeyProperties.BLOCK_MODE_ECB)
                 .build();
+        }
+        return null;
     }
 
     /**
      * Generate Encryption Keys Parameter Spec
-     * Fallback to legacy (pre API 23) Spec Generator
+     * Fallback to legacy (API 19) Spec Generator
      */
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     private static AlgorithmParameterSpec getInitParamsLegacy(Context ctx, String alias) throws Exception {
         Calendar notAfter = Calendar.getInstance();
         notAfter.add(Calendar.YEAR, CERT_VALID_YEARS);
 
         return new KeyPairGeneratorSpec.Builder(ctx)
-                .setAlias(alias)
-                .setSubject(new X500Principal(String.format("CN=%s, OU=%s", alias, ctx.getPackageName())))
-                .setSerialNumber(BigInteger.ONE)
-                .setStartDate(Calendar.getInstance().getTime())
-                .setEndDate(notAfter.getTime())
-                .setEncryptionRequired()
-                .setKeySize(2048)
-                .setKeyType(KeyProperties.KEY_ALGORITHM_RSA)
-                .build();
+            .setAlias(alias)
+            .setSubject(new X500Principal(String.format("CN=%s, OU=%s", alias, ctx.getPackageName())))
+            .setSerialNumber(BigInteger.ONE)
+            .setStartDate(Calendar.getInstance().getTime())
+            .setEndDate(notAfter.getTime())
+            .setEncryptionRequired()
+            .setKeySize(2048)
+            .setKeyType(getRSAProperty())
+            .build();
     }
 }
