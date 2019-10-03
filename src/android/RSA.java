@@ -7,6 +7,8 @@ import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Log;
 
+import javax.crypto.Cipher;
+import javax.security.auth.x500.X500Principal;
 import java.math.BigInteger;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -15,9 +17,6 @@ import java.security.KeyStore;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.util.Calendar;
-
-import javax.crypto.Cipher;
-import javax.security.auth.x500.X500Principal;
 
 public class RSA {
     private static final String KEYSTORE_PROVIDER = "AndroidKeyStore";
@@ -37,14 +36,17 @@ public class RSA {
     public static void createKeyPair(Context ctx, String alias, Integer userAuthenticationValidityDuration) throws Exception {
         AlgorithmParameterSpec spec = IS_API_23_AVAILABLE ? getInitParams(alias, userAuthenticationValidityDuration) : getInitParamsLegacy(ctx, alias);
 
-        KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance(getRSAProperty(), KEYSTORE_PROVIDER);
+        KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance(getRSAKey(), KEYSTORE_PROVIDER);
         kpGenerator.initialize(spec);
         kpGenerator.generateKeyPair();
     }
 
 
-    public static String getRSAProperty() {
-        return KeyProperties.KEY_ALGORITHM_RSA;
+    public static String getRSAKey() {
+        if (IS_API_23_AVAILABLE) {
+            return KeyProperties.KEY_ALGORITHM_RSA;
+        }
+        return "RSA";
     }
 
     /**
@@ -196,7 +198,7 @@ public class RSA {
             .setEndDate(notAfter.getTime())
             .setEncryptionRequired()
             .setKeySize(2048)
-            .setKeyType(getRSAProperty())
+            .setKeyType(getRSAKey())
             .build();
     }
 }
