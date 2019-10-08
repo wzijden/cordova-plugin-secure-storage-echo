@@ -13,7 +13,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.KeyGenerator;
 
 public class AES {
-    private static final String CIPHER_MODE = "CCM";
+    private static final String CIPHER_MODE = "GCM";
     private static final int KEY_SIZE = 256;
     private static final int VERSION = 1;
     private static final Cipher CIPHER = getCipher();
