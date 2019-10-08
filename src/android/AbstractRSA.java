@@ -49,7 +49,7 @@ public abstract class AbstractRSA {
         }
     }
 
-    void createKeyPair(Context ctx, String alias, Integer userAuthenticationValidityDuration) throws Exception {
+    public void createKeyPair(Context ctx, String alias, Integer userAuthenticationValidityDuration) throws Exception {
         AlgorithmParameterSpec spec = getInitParams(ctx, alias, userAuthenticationValidityDuration);
         KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance(getRSAKey(), KEYSTORE_PROVIDER);
         kpGenerator.initialize(spec);

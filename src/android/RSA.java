@@ -3,6 +3,8 @@ package com.crypho.plugins;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyInfo;
 import android.security.keystore.KeyProperties;
 import android.util.Log;
 
@@ -23,13 +25,9 @@ public class RSA extends AbstractRSA {
             if (privateKey == null) {
                 return false;
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                android.security.keystore.KeyInfo keyInfo;
-                KeyFactory factory = KeyFactory.getInstance(privateKey.getAlgorithm(), KEYSTORE_PROVIDER);
-                keyInfo = factory.getKeySpec(privateKey, android.security.keystore.KeyInfo.class);
-                return keyInfo.isInsideSecureHardware();
-            }
-            return false;
+            KeyFactory factory = KeyFactory.getInstance(privateKey.getAlgorithm(), KEYSTORE_PROVIDER);
+            KeyInfo keyInfo = factory.getKeySpec(privateKey, KeyInfo.class);
+            return keyInfo.isInsideSecureHardware();
         } catch (Exception e) {
             Log.i(TAG, "Checking encryption keys failed.", e);
             return false;
@@ -43,7 +41,7 @@ public class RSA extends AbstractRSA {
         notAfter.add(Calendar.YEAR, CERT_VALID_YEARS);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return new android.security.keystore.KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT)
+            return new KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT)
                 .setCertificateNotBefore(Calendar.getInstance().getTime())
                 .setCertificateNotAfter(notAfter.getTime())
                 .setAlgorithmParameterSpec(new RSAKeyGenParameterSpec(2048, RSAKeyGenParameterSpec.F4))
