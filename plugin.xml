@@ -51,6 +51,9 @@
         </config-file>
 
         <source-file src="src/android/SecureStorage.java" target-dir="src/com/crypho/plugins/" />
+        <source-file src="src/android/RSALegacy.java" target-dir="src/com/crypho/plugins/" />
+        <source-file src="src/android/RSAFactory.java" target-dir="src/com/crypho/plugins/" />
+        <source-file src="src/android/AbstractRSA.java" target-dir="src/com/crypho/plugins/" />
         <source-file src="src/android/RSA.java" target-dir="src/com/crypho/plugins/" />
         <source-file src="src/android/AES.java" target-dir="src/com/crypho/plugins/" />
         <source-file src="src/android/SharedPreferencesHandler.java" target-dir="src/com/crypho/plugins/" />
