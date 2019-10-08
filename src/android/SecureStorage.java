@@ -1,23 +1,23 @@
 package com.crypho.plugins;
 
-import java.lang.reflect.Method;
-import java.util.Hashtable;
-
-import android.provider.Settings;
-import android.util.Log;
-import android.util.Base64;
-import android.os.Build;
+import android.annotation.TargetApi;
 import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
-import android.annotation.TargetApi;
+import android.os.Build;
+import android.provider.Settings;
+import android.util.Base64;
+import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaArgs;
 import org.apache.cordova.CordovaPlugin;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONArray;
+
+import java.lang.reflect.Method;
+import java.util.Hashtable;
 
 public class SecureStorage extends CordovaPlugin {
     private static final String TAG = "SecureStorage";
@@ -35,9 +35,12 @@ public class SecureStorage extends CordovaPlugin {
     private volatile CallbackContext secureDeviceContext, generateKeysContext, unlockCredentialsContext;
     private volatile boolean generateKeysContextRunning = false;
 
+    private AbstractRSA rsa = RSAFactory.getRSA();
+
     @Override
     public void onResume(boolean multitasking) {
         if (secureDeviceContext != null) {
+
             if (isDeviceSecure()) {
                 secureDeviceContext.success();
             } else {
@@ -51,7 +54,7 @@ public class SecureStorage extends CordovaPlugin {
                 cordova.getThreadPool().execute(new Runnable() {
                     public void run() {
                         String alias = service2alias(INIT_SERVICE);
-                        if (RSA.userAuthenticationRequired(alias)) {
+                        if (rsa.userAuthenticationRequired(alias)) {
                             unlockCredentialsContext.error("User not authenticated");
                         }
                         unlockCredentialsContext.success();
@@ -97,7 +100,7 @@ public class SecureStorage extends CordovaPlugin {
             if (!isDeviceSecure()) {
                 Log.e(TAG, MSG_DEVICE_NOT_SECURE);
                 callbackContext.error(MSG_DEVICE_NOT_SECURE);
-            } else if (!RSA.encryptionKeysAvailable(alias)) {
+            } else if (!rsa.encryptionKeysAvailable(alias)) {
                 // Encryption Keys aren't available, proceed to generate them
                 Integer userAuthenticationValidityDuration = options.optInt("userAuthenticationValidityDuration", DEFAULT_AUTHENTICATION_VALIDITY_TIME);
                 generateKeysContext = callbackContext;
@@ -105,7 +108,7 @@ public class SecureStorage extends CordovaPlugin {
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT) {
                     unlockCredentialsLegacy();
                 }
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && RSA.userAuthenticationRequired(alias)) {
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && rsa.userAuthenticationRequired(alias)) {
                 // User has to confirm authentication via device credentials.
                 String title = options.optString("unlockCredentialsTitle", null);
                 String description = options.optString("unlockCredentialsDescription", null);
@@ -115,6 +118,7 @@ public class SecureStorage extends CordovaPlugin {
             } else {
                 initSuccess(callbackContext);
             }
+
             return true;
         }
         if ("set".equals(action)) {
@@ -127,7 +131,7 @@ public class SecureStorage extends CordovaPlugin {
                     try {
                         JSONObject result = AES.encrypt(value.getBytes(), adata.getBytes());
                         byte[] aes_key = Base64.decode(result.getString("key"), Base64.DEFAULT);
-                        byte[] aes_key_enc = RSA.encrypt(aes_key, service2alias(service));
+                        byte[] aes_key_enc = rsa.encrypt(aes_key, service2alias(service));
                         result.put("key", Base64.encodeToString(aes_key_enc, Base64.DEFAULT));
                         getStorage(service).store(key, result.toString());
                         callbackContext.success(key);
@@ -153,7 +157,7 @@ public class SecureStorage extends CordovaPlugin {
                 cordova.getThreadPool().execute(new Runnable() {
                     public void run() {
                         try {
-                            byte[] decryptedKey = RSA.decrypt(encKey, service2alias(service));
+                            byte[] decryptedKey = rsa.decrypt(encKey, service2alias(service));
                             String decrypted = new String(AES.decrypt(ct, decryptedKey, iv, adata));
                             callbackContext.success(decrypted);
                         } catch (Exception e) {
@@ -263,7 +267,7 @@ public class SecureStorage extends CordovaPlugin {
                         String alias = service2alias(INIT_SERVICE);
                         //Solves Issue #96. The RSA key may have been deleted by changing the lock type.
                         getStorage(INIT_SERVICE).clear();
-                        RSA.createKeyPair(getContext(), alias, userAuthenticationValidityDuration);
+                        rsa.createKeyPair(getContext(), alias, userAuthenticationValidityDuration);
                         generateKeysContext.success();
                     } catch (Exception e) {
                         Log.e(TAG, MSG_KEYS_FAILED, e);

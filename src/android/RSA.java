@@ -3,65 +3,21 @@ package com.crypho.plugins;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
-import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Log;
 
-import javax.crypto.Cipher;
-import javax.security.auth.x500.X500Principal;
-import java.math.BigInteger;
 import java.security.Key;
 import java.security.KeyFactory;
-import java.security.KeyPairGenerator;
-import java.security.KeyStore;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.util.Calendar;
 
-public class RSA {
-    private static final String KEYSTORE_PROVIDER = "AndroidKeyStore";
-    private static final Cipher CIPHER = getCipher();
-    private static final Integer CERT_VALID_YEARS = 100;
-    private static final Boolean IS_API_23_AVAILABLE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
-    private static final String TAG = "SecureStorage";
+import javax.crypto.Cipher;
 
-    public static byte[] encrypt(byte[] buf, String alias) throws Exception {
-        return runCipher(Cipher.ENCRYPT_MODE, alias, buf);
-    }
-
-    public static byte[] decrypt(byte[] buf, String alias) throws Exception {
-        return runCipher(Cipher.DECRYPT_MODE, alias, buf);
-    }
-
-    public static void createKeyPair(Context ctx, String alias, Integer userAuthenticationValidityDuration) throws Exception {
-        AlgorithmParameterSpec spec = IS_API_23_AVAILABLE ? getInitParams(alias, userAuthenticationValidityDuration) : getInitParamsLegacy(ctx, alias);
-
-        KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance(getRSAKey(), KEYSTORE_PROVIDER);
-        kpGenerator.initialize(spec);
-        kpGenerator.generateKeyPair();
-    }
-
-
-    public static String getRSAKey() {
-        if (IS_API_23_AVAILABLE) {
-            return KeyProperties.KEY_ALGORITHM_RSA;
-        }
-        return "RSA";
-    }
-
-    /**
-     * Check if Encryption Keys are available and secure.
-     *
-     * @param alias
-     * @return boolean
-     */
-    static boolean encryptionKeysAvailable(String alias) {
-        return IS_API_23_AVAILABLE ? isEntryAvailable(alias) : isEntryAvailableLegacy(alias);
-    }
-
+public class RSA extends AbstractRSA {
 
     @TargetApi(Build.VERSION_CODES.M)
-    private static boolean isEntryAvailable(String alias) {
+    public boolean isEntryAvailable(String alias) {
         try {
             Key privateKey = loadKey(Cipher.DECRYPT_MODE, alias);
             if (privateKey == null) {
@@ -80,90 +36,9 @@ public class RSA {
         }
     }
 
-
-    @TargetApi(Build.VERSION_CODES.KITKAT)
-    private static boolean isEntryAvailableLegacy(String alias) {
-        try {
-            return loadKey(Cipher.ENCRYPT_MODE, alias) != null;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /**
-     * Check if we need to prompt for User's Credentials
-     *
-     * @param alias
-     * @return
-     */
+    @Override
     @TargetApi(Build.VERSION_CODES.M)
-    public static boolean userAuthenticationRequired(String alias) {
-        try {
-            // Do a quick encrypt/decrypt test
-            byte[] encrypted = encrypt(alias.getBytes(), alias);
-            decrypt(encrypted, alias);
-            return false;
-        } catch (android.security.keystore.UserNotAuthenticatedException noAuthEx) {
-            return true;
-        } catch (Exception e) {
-            // Other
-            return false;
-        }
-    }
-
-    private static byte[] runCipher(int cipherMode, String alias, byte[] buf) throws Exception {
-        Key key = loadKey(cipherMode, alias);
-        synchronized (CIPHER) {
-            CIPHER.init(cipherMode, key);
-            return CIPHER.doFinal(buf);
-        }
-    }
-
-    private static Key loadKey(int cipherMode, String alias) throws Exception {
-        KeyStore keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER);
-        keyStore.load(null, null);
-
-        if (!keyStore.containsAlias(alias)) {
-            throw new Exception("KeyStore doesn't contain alias: " + alias);
-        }
-
-        Key key;
-        switch (cipherMode) {
-            case Cipher.ENCRYPT_MODE:
-                key = keyStore.getCertificate(alias).getPublicKey();
-                if (key == null) {
-                    throw new Exception("Failed to load the public key for " + alias);
-                }
-                break;
-            case Cipher.DECRYPT_MODE:
-                key = keyStore.getKey(alias, null);
-                if (key == null) {
-                    throw new Exception("Failed to load the private key for " + alias);
-                }
-                break;
-            default:
-                throw new Exception("Invalid cipher mode parameter");
-        }
-        return key;
-    }
-
-    private static Cipher getCipher() {
-        try {
-            return Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * Generate Encryption Keys Parameter Spec
-     *
-     * @param alias String
-     * @return AlgorithmParameterSpec
-     * @// TODO: 2019-07-08 Fix setUserAuthenticationValidityDurationSeconds workaround
-     */
-    @TargetApi(Build.VERSION_CODES.M)
-    private static AlgorithmParameterSpec getInitParams(String alias, Integer userAuthenticationValidityDuration) {
+    public AlgorithmParameterSpec getInitParams(Context ctx, String alias, Integer userAuthenticationValidityDuration) {
         Calendar notAfter = Calendar.getInstance();
         notAfter.add(Calendar.YEAR, CERT_VALID_YEARS);
 
@@ -179,26 +54,5 @@ public class RSA {
                 .build();
         }
         return null;
-    }
-
-    /**
-     * Generate Encryption Keys Parameter Spec
-     * Fallback to legacy (API 19) Spec Generator
-     */
-    @TargetApi(Build.VERSION_CODES.KITKAT)
-    private static AlgorithmParameterSpec getInitParamsLegacy(Context ctx, String alias) throws Exception {
-        Calendar notAfter = Calendar.getInstance();
-        notAfter.add(Calendar.YEAR, CERT_VALID_YEARS);
-
-        return new KeyPairGeneratorSpec.Builder(ctx)
-            .setAlias(alias)
-            .setSubject(new X500Principal(String.format("CN=%s, OU=%s", alias, ctx.getPackageName())))
-            .setSerialNumber(BigInteger.ONE)
-            .setStartDate(Calendar.getInstance().getTime())
-            .setEndDate(notAfter.getTime())
-            .setEncryptionRequired()
-            .setKeySize(2048)
-            .setKeyType(getRSAKey())
-            .build();
     }
 }
