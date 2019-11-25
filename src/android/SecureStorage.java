@@ -237,7 +237,12 @@ public class SecureStorage extends CordovaPlugin {
             public void run() {
                 KeyguardManager keyguardManager = (KeyguardManager) (getContext().getSystemService(Context.KEYGUARD_SERVICE));
                 Intent intent = keyguardManager.createConfirmDeviceCredentialIntent(title, description);
-                startActivity(intent);
+                if (intent != null) {
+                    startActivity(intent);
+                } else {
+                    Log.e(TAG, "Error creating Confirm Credentials Intent");
+                    unlockCredentialsContext.error("Cant't unlock credentials, error creating Confirm Credentials Intent");
+                }
             }
         });
     }
