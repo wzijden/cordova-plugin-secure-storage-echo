@@ -14,7 +14,7 @@ public class SharedPreferencesHandler {
 		prefs = ctx.getSharedPreferences(prefsName  + "_SS", 0);
 	}
 
-    void store(String key, String value){
+    public void store(String key, String value){
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("_SS_" + key, value);
         editor.commit();
