@@ -16,16 +16,16 @@ public class AES {
     private static final String CIPHER_MODE = "GCM";
     private static final int KEY_SIZE = 256;
     private static final int VERSION = 1;
-    private static final Cipher CIPHER = getCipher();
+    private static final Cipher GLOBAL_CIPHER = getCipher(CIPHER_MODE);
 
     public static JSONObject encrypt(byte[] msg, byte[] adata) throws Exception {
         byte[] iv, ct, secretKeySpec_enc;
-        synchronized (CIPHER) {
+        synchronized (GLOBAL_CIPHER) {
             SecretKeySpec secretKeySpec = generateKeySpec();
             secretKeySpec_enc = secretKeySpec.getEncoded();
-            initCipher(Cipher.ENCRYPT_MODE, secretKeySpec, null, adata);
-            iv = CIPHER.getIV();
-            ct = CIPHER.doFinal(msg);
+            initCipher(Cipher.ENCRYPT_MODE, secretKeySpec, null, adata, GLOBAL_CIPHER);
+            iv = GLOBAL_CIPHER.getIV();
+            ct = GLOBAL_CIPHER.doFinal(msg);
         }
 
         JSONObject value = new JSONObject();
@@ -45,11 +45,18 @@ public class AES {
         return result;
     }
 
-    public static String decrypt(byte[] buf, byte[] key, byte[] iv, byte[] adata) throws Exception {
+    public static String decrypt(byte[] buf, byte[] key, byte[] iv, byte[] adata, String cipherMode) throws Exception {
+        Cipher cipher;
+        if ( cipherMode == CIPHER_MODE ) {
+            cipher = GLOBAL_CIPHER;
+        } else {
+            cipher = getCipher(cipherMode);
+        }
+
         SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
-        synchronized (CIPHER) {
-            initCipher(Cipher.DECRYPT_MODE, secretKeySpec, iv, adata);
-            return new String(CIPHER.doFinal(buf));
+        synchronized (cipher) {
+            initCipher(Cipher.DECRYPT_MODE, secretKeySpec, iv, adata, cipher);
+            return new String(cipher.doFinal(buf));
         }
     }
 
@@ -60,18 +67,22 @@ public class AES {
         return new SecretKeySpec(sc.getEncoded(), "AES");
     }
 
-    private static void initCipher(int cipherMode, Key key, byte[] iv, byte[] adata) throws Exception {
+    private static void initCipher(int cipherMode, Key key, byte[] iv, byte[] adata, Cipher cipher) throws Exception {
         if (iv != null) {
-            CIPHER.init(cipherMode, key, new IvParameterSpec(iv));
+            cipher.init(cipherMode, key, new IvParameterSpec(iv));
         } else {
-            CIPHER.init(cipherMode, key);
+            cipher.init(cipherMode, key);
         }
-        CIPHER.updateAAD(adata);
+        cipher.updateAAD(adata);
     }
 
-    private static Cipher getCipher() {
+    private static Cipher getCipher(String cipherMode) {
+        if ( cipherMode == null ) {
+            cipherMode = CIPHER_MODE;
+        }
+
         try {
-            return Cipher.getInstance("AES/" + CIPHER_MODE + "/NoPadding");
+            return Cipher.getInstance("AES/" + cipherMode + "/NoPadding");
         } catch (Exception e) {
             return null;
         }
