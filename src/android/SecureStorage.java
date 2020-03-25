@@ -271,8 +271,8 @@ public class SecureStorage extends CordovaPlugin {
                     generateKeysContextRunning = true;
                     try {
                         String alias = service2alias(INIT_SERVICE);
-                        Map<String, ?> map = (getStorage(INIT_SERVICE)).getPrefs().getAll();
-                        if(map.size() == 0){
+                        SharedPreferencesHandler storage = getStorage(INIT_SERVICE);
+                        if(storage.isEmpty()){
                             //Solves Issue #96. The RSA key may have been deleted by changing the lock type.
                             getStorage(INIT_SERVICE).clear();
                             rsa.createKeyPair(getContext(), alias, userAuthenticationValidityDuration);
