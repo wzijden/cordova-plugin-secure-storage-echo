@@ -275,10 +275,9 @@ public class SecureStorage extends CordovaPlugin {
                         if(map.size() == 0){
                             //Solves Issue #96. The RSA key may have been deleted by changing the lock type.
                             getStorage(INIT_SERVICE).clear();
-                            //TODO: Not sure if this should be imported like this
-                            com.crypho.plugins.RSA.createKeyPair(getContext(), alias, userAuthenticationValidityDuration);
+                            rsa.createKeyPair(getContext(), alias, userAuthenticationValidityDuration);
                         }
-                           generateKeysContext.success();
+                        generateKeysContext.success();
                     } catch (Exception e) {
                         Log.e(TAG, MSG_KEYS_FAILED, e);
                         generateKeysContext.error(MSG_KEYS_FAILED + e.getMessage());
