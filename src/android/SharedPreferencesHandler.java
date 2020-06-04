@@ -15,8 +15,7 @@ public class SharedPreferencesHandler {
 	}
 
 	boolean isEmpty() {
-	    int numOfPrefs = prefs.getAll().size();
-	    return (numOfPrefs == 0);
+	    return prefs.getAll().isEmpty();
     }
 
     void store(String key, String value){
