@@ -158,7 +158,7 @@ public class SecureStorage extends CordovaPlugin {
                     public void run() {
                         try {
                             byte[] decryptedKey = rsa.decrypt(encKey, service2alias(service));
-                            String decrypted = new String(AES.decrypt(ct, decryptedKey, iv, adata));
+                            String decrypted = new String(AES.decrypt(ct, decryptedKey, iv, adata, data.getString("mode")));
                             callbackContext.success(decrypted);
                         } catch (Exception e) {
                             Log.e(TAG, "Decrypt failed :", e);
