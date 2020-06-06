@@ -54,12 +54,14 @@ public class SecureStorage extends CordovaPlugin {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 cordova.getThreadPool().execute(new Runnable() {
                     public void run() {
-                        String alias = service2alias(INIT_SERVICE);
-                        if (rsa.userAuthenticationRequired(alias)) {
-                            unlockCredentialsContext.error("User not authenticated");
+                        if (unlockCredentialsContext != null) {
+                            String alias = service2alias(INIT_SERVICE);
+                            if (rsa.userAuthenticationRequired(alias)) {
+                                unlockCredentialsContext.error("User not authenticated");
+                            }
+                            unlockCredentialsContext.success();
+                            unlockCredentialsContext = null;
                         }
-                        unlockCredentialsContext.success();
-                        unlockCredentialsContext = null;
                     }
                 });
             }
