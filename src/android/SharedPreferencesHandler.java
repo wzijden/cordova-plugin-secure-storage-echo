@@ -18,7 +18,7 @@ public class SharedPreferencesHandler {
 	    return prefs.getAll().isEmpty();
     }
 
-    void store(String key, String value){
+    public void store(String key, String value){
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("_SS_" + key, value);
         editor.commit();
