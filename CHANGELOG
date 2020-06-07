@@ -1,6 +1,18 @@
 Changelog
 =========
 
+5.1.0 - 2020-06-07
+------------------
+
+- Fix to storage getting wiped after restarting app with Ionic.
+  [Zach-Attach]
+
+- Further guard against NPEs.
+  [timbru31]
+
+- Added retro-compatibility option for data encrypted with old cipher
+  [vermi0ffh]
+
 5.0.1 - 2019-11-25
 ------------------
 
