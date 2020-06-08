@@ -47,7 +47,7 @@ public class AES {
 
     public static String decrypt(byte[] buf, byte[] key, byte[] iv, byte[] adata, String cipherMode) throws Exception {
         Cipher cipher;
-        if ( cipherMode == CIPHER_MODE ) {
+        if ( CIPHER_MODE.equals(cipherMode) ) {
             cipher = GLOBAL_CIPHER;
         } else {
             cipher = getCipher(cipherMode);
