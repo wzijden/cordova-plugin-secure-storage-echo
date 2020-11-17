@@ -45,9 +45,10 @@ public class RSA extends AbstractRSA {
                 .setCertificateNotBefore(Calendar.getInstance().getTime())
                 .setCertificateNotAfter(notAfter.getTime())
                 .setAlgorithmParameterSpec(new RSAKeyGenParameterSpec(2048, RSAKeyGenParameterSpec.F4))
+                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA1)
                 .setUserAuthenticationRequired(true)
                 .setUserAuthenticationValidityDurationSeconds(userAuthenticationValidityDuration)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
                 .setBlockModes(KeyProperties.BLOCK_MODE_ECB)
                 .build();
         }

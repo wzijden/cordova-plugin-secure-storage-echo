@@ -9,8 +9,11 @@ import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.MGF1ParameterSpec;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 
 public abstract class AbstractRSA {
     protected static final String TAG = "SecureStorage";
@@ -34,7 +37,7 @@ public abstract class AbstractRSA {
 
     private Cipher getCipher() {
         try {
-            return Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            return Cipher.getInstance("RSA/ECB/OAEPPadding");
         } catch (Exception e) {
             return null;
         }
@@ -44,7 +47,8 @@ public abstract class AbstractRSA {
         Key key = loadKey(cipherMode, alias);
         assert CIPHER != null;
         synchronized (CIPHER) {
-            CIPHER.init(cipherMode, key);
+            // https://developer.android.com/guide/topics/security/cryptography#oaep-mgf1-digest
+            CIPHER.init(cipherMode, key, new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA1, PSource.PSpecified.DEFAULT));
             return CIPHER.doFinal(buf);
         }
     }
